@@ -1,0 +1,579 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Hidel Finance API Documentation",
+    "version": "1.0.0",
+    "description": "Production-ready backend API specifications for Hidel Finance mobile application. All authenticated endpoints require a Bearer Access Token in the Authorization header."
+  },
+  "servers": [
+    {
+      "url": "/api/v1",
+      "description": "API Version 1 Endpoint"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Enter the JWT access token returned from /auth/login. Format: Bearer <token>"
+      }
+    },
+    "schemas": {
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "customerId": { "type": "string", "example": "NV-48211" },
+          "name": { "type": "string", "example": "Aarav Shah" },
+          "email": { "type": "string", "format": "email", "example": "aarav.shah@example.com" },
+          "phoneMasked": { "type": "string", "example": "+91 98••• ••421" },
+          "kycStatus": { "type": "string", "example": "verified" },
+          "creditScore": { "type": "integer", "example": 782 },
+          "preferences": {
+            "type": "object",
+            "properties": {
+              "darkMode": { "type": "boolean", "example": true },
+              "notifications": { "type": "boolean", "example": true },
+              "loginAlerts": { "type": "boolean", "example": true }
+            }
+          }
+        }
+      },
+      "Loan": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "example": "LN-48211" },
+          "type": { "type": "string", "example": "Personal Loan" },
+          "principal": { "type": "number", "example": 48000 },
+          "outstanding": { "type": "number", "example": 22320 },
+          "paid": { "type": "number", "example": 25680 },
+          "interestRate": { "type": "number", "example": 8.4 },
+          "termMonths": { "type": "integer", "example": 36 },
+          "paidEmis": { "type": "integer", "example": 9 },
+          "nextDueAmount": { "type": "number", "example": 1240 },
+          "nextDueDate": { "type": "string", "format": "date", "example": "2026-06-05" },
+          "paymentMethod": { "type": "string", "example": "HDFC Bank ••4421" },
+          "breakdown": {
+            "type": "object",
+            "properties": {
+              "principal": { "type": "number", "example": 980 },
+              "interest": { "type": "number", "example": 210 },
+              "fees": { "type": "number", "example": 50 }
+            }
+          }
+        }
+      },
+      "Payment": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "example": "TX-009" },
+          "emiNo": { "type": "string", "example": "009" },
+          "date": { "type": "string", "format": "date", "example": "2026-05-05" },
+          "method": { "type": "string", "example": "Auto-debit · HDFC ••4421" },
+          "amount": { "type": "number", "example": 1240 },
+          "status": { "type": "string", "example": "Paid" }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/admin/users/{id}": {
+      "put": {
+        "summary": "Update User Details",
+        "description": "Updates customer details in the super admin panel.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "schema": { "type": "string" }, "required": true }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "customerName": { "type": "string", "example": "Aarav Shah" },
+                  "phone": { "type": "string", "example": "+91 9876543210" },
+                  "email": { "type": "string", "example": "aarav.shah@example.com" },
+                  "kycStatus": { "type": "string", "example": "Verified" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User updated successfully"
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "summary": "User Login",
+        "description": "Authenticates user credentials and returns JWT access and refresh tokens.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": { "type": "string", "format": "email", "example": "aarav.shah@example.com" },
+                  "password": { "type": "string", "example": "password123" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "accessToken": { "type": "string" },
+                    "refreshToken": { "type": "string" },
+                    "user": { "$ref": "#/components/schemas/User" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - incorrect credentials"
+          }
+        }
+      }
+    },
+    "/auth/refresh": {
+      "post": {
+        "summary": "Refresh Access Token",
+        "description": "Generates a new access token using a valid refresh token.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["refreshToken"],
+                "properties": {
+                  "refreshToken": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token refreshed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "accessToken": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid refresh token"
+          }
+        }
+      }
+    },
+    "/auth/forgot-password": {
+      "post": {
+        "summary": "Initiate Password Recovery",
+        "description": "Sends a password recovery link or OTP.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email"],
+                "properties": {
+                  "email": { "type": "string", "format": "email", "example": "aarav.shah@example.com" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OTP sent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "OTP verification code sent to your registered contact details." }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/reset-password": {
+      "post": {
+        "summary": "Verify OTP and Reset Password",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "otp", "newPassword"],
+                "properties": {
+                  "email": { "type": "string", "format": "email", "example": "aarav.shah@example.com" },
+                  "otp": { "type": "string", "example": "592104" },
+                  "newPassword": { "type": "string", "example": "newPassword123" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Password updated successfully." }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/profile": {
+      "get": {
+        "summary": "Get User Profile Details",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Profile details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": { "$ref": "#/components/schemas/User" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Edit User Profile",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string", "example": "Aarav Shah" },
+                  "email": { "type": "string", "format": "email", "example": "aarav.shah@example.com" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profile updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "name": { "type": "string" },
+                        "email": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/profile/preferences": {
+      "patch": {
+        "summary": "Update User Preferences",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "darkMode": { "type": "boolean" },
+                  "notifications": { "type": "boolean" },
+                  "loginAlerts": { "type": "boolean" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Preferences updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "preferences": {
+                      "type": "object",
+                      "properties": {
+                        "darkMode": { "type": "boolean" },
+                        "notifications": { "type": "boolean" },
+                        "loginAlerts": { "type": "boolean" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/profile/change-password": {
+      "post": {
+        "summary": "Change User Password",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["currentPassword", "newPassword"],
+                "properties": {
+                  "currentPassword": { "type": "string" },
+                  "newPassword": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password changed successfully"
+          }
+        }
+      }
+    },
+    "/loans/active": {
+      "get": {
+        "summary": "Get User Active Loan details",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Loan details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": { "$ref": "#/components/schemas/Loan" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/payments": {
+      "get": {
+        "summary": "Get Transaction History List",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "status", "in": "query", "schema": { "type": "string", "enum": ["All", "Paid", "Pending"] }, "required": false },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 10 }, "required": false },
+          { "name": "offset", "in": "query", "schema": { "type": "integer", "default": 0 }, "required": false }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transaction list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "count": { "type": "integer" },
+                    "payments": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Payment" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Submit Repayment Transaction",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["amount", "method"],
+                "properties": {
+                  "amount": { "type": "number", "example": 1240 },
+                  "method": { "type": "string", "example": "UPI / PhonePe" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Payment processed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Payment processed successfully." },
+                    "transaction": { "$ref": "#/components/schemas/Payment" },
+                    "updatedLoan": {
+                      "type": "object",
+                      "properties": {
+                        "outstanding": { "type": "number" },
+                        "paid": { "type": "number" },
+                        "paidEmis": { "type": "integer" },
+                        "nextDueDate": { "type": "string", "format": "date" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/payments/calendar": {
+      "get": {
+        "summary": "Get Calendar Event dates",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "year", "in": "query", "schema": { "type": "integer" }, "required": true },
+          { "name": "month", "in": "query", "schema": { "type": "integer", "description": "0-11 for Jan-Dec" }, "required": true }
+        ],
+        "responses": {
+          "200": {
+            "description": "Date lists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "paidDates": { "type": "array", "items": { "type": "string" } },
+                    "dueDates": { "type": "array", "items": { "type": "string" } }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/payments/{id}/receipt": {
+      "get": {
+        "summary": "Get Structured Receipt Data",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "schema": { "type": "string" }, "required": true }
+        ],
+        "responses": {
+          "200": {
+            "description": "Receipt structure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "receipt": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "string" },
+                        "transactionId": { "type": "string" },
+                        "date": { "type": "string" },
+                        "customer": { "type": "object" },
+                        "loan": { "type": "object" },
+                        "payment": { "type": "object" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/payments/{id}/receipt/download": {
+      "get": {
+        "summary": "Download Receipt File",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "schema": { "type": "string" }, "required": true }
+        ],
+        "responses": {
+          "200": {
+            "description": "Text receipt attachment file download",
+            "content": {
+              "text/plain": {
+                "schema": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
