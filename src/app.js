@@ -49,6 +49,14 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 // Mount API routes
 app.use('/api/v1', apiRoutes);
 
+// Root route for Render health checks
+app.get('/', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "Fintech Backend API is running",
+  });
+});
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.status(200).json({
