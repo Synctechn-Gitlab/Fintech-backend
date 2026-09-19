@@ -13,16 +13,21 @@ const sendVerificationEmail = async (email, name, otp) => {
     return true; // For testing when credentials aren't set
   }
 
-  // Configure Nodemailer for Gmail
+  // Configure Nodemailer for Gmail (Forced IPv4 to prevent ENETUNREACH on IPv6)
   const transporter = nodemailer.createTransport({
-    service: 'Gmail',
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
+    family: 4, // Force IPv4 to bypass IPv6 routing issues
     auth: {
       user: senderEmail,
       pass: senderPass
     },
     tls: {
       rejectUnauthorized: false
-    }
+    },
+    connectionTimeout: 10000, // 10 seconds timeout instead of hanging infinitely
+    greetingTimeout: 10000
   });
 
   const mailOptions = {
