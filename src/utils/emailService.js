@@ -5,28 +5,23 @@ const sendVerificationEmail = async (email, name, otp) => {
   console.log(`[EMAIL SERVICE] Sending Verification Email to ${email}`);
   console.log('=============================================\n');
 
-  const senderEmail = process.env.GMAIL_USER;
-  const senderPass = process.env.GMAIL_PASS;
+  const senderEmail = process.env.MAILGUN_USER;
+  const senderPass = process.env.MAILGUN_PASS;
 
   if (!senderEmail || !senderPass) {
-    console.log('[EMAIL SERVICE] Missing GMAIL_USER or GMAIL_PASS. Skipping actual email send via Nodemailer.');
+    console.log('[EMAIL SERVICE] Missing MAILGUN_USER or MAILGUN_PASS. Skipping actual email send via Nodemailer.');
     return true; // For testing when credentials aren't set
   }
 
-  // Configure Nodemailer for Gmail (Forced IPv4 to prevent ENETUNREACH on IPv6)
+  // Configure Nodemailer for Mailgun (Port 2525 bypasses Render's SMTP block)
   const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 465,
-    secure: true,
-    family: 4, // Force IPv4 to bypass IPv6 routing issues
+    host: 'smtp.mailgun.org',
+    port: 2525,
     auth: {
       user: senderEmail,
       pass: senderPass
     },
-    tls: {
-      rejectUnauthorized: false
-    },
-    connectionTimeout: 10000, // 10 seconds timeout instead of hanging infinitely
+    connectionTimeout: 10000,
     greetingTimeout: 10000
   });
 
@@ -60,7 +55,7 @@ const sendVerificationEmail = async (email, name, otp) => {
 
   try {
     const info = await transporter.sendMail(mailOptions);
-    console.log("[EMAIL SERVICE] Email sent successfully via Gmail. Message ID:", info.messageId);
+    console.log("[EMAIL SERVICE] Email sent successfully via Mailgun. Message ID:", info.messageId);
     return info.messageId;
   } catch (error) {
     console.error("[EMAIL SERVICE] Nodemailer error:", error);
