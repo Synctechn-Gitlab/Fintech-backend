@@ -5,27 +5,37 @@ const sendVerificationEmail = async (email, name, otp) => {
   console.log(`[EMAIL SERVICE] Sending Verification Email to ${email}`);
   console.log('=============================================\n');
 
-  const smtpHost = process.env.SMTP_HOST || 'smtp.mailgun.org';
-  const smtpPort = parseInt(process.env.SMTP_PORT, 10) || 2525;
-  const senderEmail = process.env.SMTP_USER;
-  const senderPass = process.env.SMTP_PASSWORD;
+  const senderEmail = process.env.GMAIL_USER;
+  const senderPass = process.env.GMAIL_PASS;
+
+  console.log('[EMAIL SERVICE] email provider: Gmail');
+  console.log('[EMAIL SERVICE] SMTP host: smtp.gmail.com');
+  console.log('[EMAIL SERVICE] SMTP port: 587');
+  console.log(`[EMAIL SERVICE] Gmail username: ${senderEmail}`);
+  console.log(`[EMAIL SERVICE] GMAIL_PASS_PRESENT: ${!!senderPass}`);
 
   if (!senderEmail || !senderPass) {
-    console.log('[EMAIL SERVICE] Missing SMTP_USER or SMTP_PASSWORD. Skipping actual email send via Nodemailer.');
+    console.log('[EMAIL SERVICE] Missing GMAIL_USER or GMAIL_PASS. Skipping actual email send via Nodemailer.');
     return true; // For testing when credentials aren't set
   }
 
-  // Configure Nodemailer for Mailgun (Port 2525 bypasses Render's SMTP block)
+  // Configure Nodemailer for Gmail over port 587 with STARTTLS
   const transporter = nodemailer.createTransport({
-    host: smtpHost,
-    port: smtpPort,
+    host: "smtp.gmail.com",
+    port: 587,
+    secure: false, // true for 465, false for other ports
     auth: {
       user: senderEmail,
       pass: senderPass
-    },
-    connectionTimeout: 10000,
-    greetingTimeout: 10000
+    }
   });
+
+  try {
+    await transporter.verify();
+    console.log('[EMAIL SERVICE] transporter.verify() succeeded. Ready to send.');
+  } catch (verifyError) {
+    console.error('[EMAIL SERVICE] transporter.verify() failed:', verifyError.message);
+  }
 
   const mailOptions = {
     from: `"Hidel Finance" <${senderEmail}>`,
@@ -57,7 +67,7 @@ const sendVerificationEmail = async (email, name, otp) => {
 
   try {
     const info = await transporter.sendMail(mailOptions);
-    console.log("[EMAIL SERVICE] Email sent successfully via Mailgun. Message ID:", info.messageId);
+    console.log("[EMAIL SERVICE] Email sent successfully via Gmail. Message ID:", info.messageId);
     return info.messageId;
   } catch (error) {
     console.error("[EMAIL SERVICE] Nodemailer error:", error);
