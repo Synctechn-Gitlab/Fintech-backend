@@ -1,47 +1,23 @@
-const nodemailer = require('nodemailer');
-
 const sendVerificationEmail = async (email, name, otp) => {
   console.log('\n=============================================');
   console.log(`[EMAIL SERVICE] Sending Verification Email to ${email}`);
   console.log('=============================================\n');
 
-  const senderEmail = process.env.GMAIL_USER;
-  const senderPass = process.env.GMAIL_PASS;
+  const apiKey = process.env.MAILGUN_API_KEY;
+  const domain = process.env.MAILGUN_DOMAIN || 'sandbox1f07edde778a423986fe588a8cbdd9d50.mailgun.org';
+  const from = process.env.MAILGUN_FROM || `Hidel Finance <hidelfinance@${domain}>`;
 
-  console.log('[EMAIL SERVICE] email provider: Gmail');
-  console.log('[EMAIL SERVICE] SMTP host: smtp.gmail.com');
-  console.log('[EMAIL SERVICE] SMTP port: 587');
-  console.log(`[EMAIL SERVICE] Gmail username: ${senderEmail}`);
-  console.log(`[EMAIL SERVICE] GMAIL_PASS_PRESENT: ${!!senderPass}`);
+  console.log('[EMAIL SERVICE] Provider: Mailgun HTTP API');
+  console.log(`[EMAIL SERVICE] Domain: ${domain}`);
+  console.log(`[EMAIL SERVICE] Recipient: ${email}`);
+  console.log(`[EMAIL SERVICE] API key present: ${!!apiKey}`);
 
-  if (!senderEmail || !senderPass) {
-    console.log('[EMAIL SERVICE] Missing GMAIL_USER or GMAIL_PASS. Skipping actual email send via Nodemailer.');
+  if (!apiKey) {
+    console.log('[EMAIL SERVICE] Missing MAILGUN_API_KEY. Skipping actual email send.');
     return true; // For testing when credentials aren't set
   }
 
-  // Configure Nodemailer for Gmail over port 587 with STARTTLS
-  const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 587,
-    secure: false, // true for 465, false for other ports
-    auth: {
-      user: senderEmail,
-      pass: senderPass
-    }
-  });
-
-  try {
-    await transporter.verify();
-    console.log('[EMAIL SERVICE] transporter.verify() succeeded. Ready to send.');
-  } catch (verifyError) {
-    console.error('[EMAIL SERVICE] transporter.verify() failed:', verifyError.message);
-  }
-
-  const mailOptions = {
-    from: `"Hidel Finance" <${senderEmail}>`,
-    to: email,
-    subject: 'Verify your Hidel Finance Account',
-    html: `
+  const htmlContent = `
       <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #111827;">Welcome to Hidel Finance!</h2>
         <p style="color: #4B5563; font-size: 16px;">
@@ -62,15 +38,41 @@ const sendVerificationEmail = async (email, name, otp) => {
           If you did not create this account, please ignore this email.
         </p>
       </div>
-    `
-  };
+    `;
+
+  const url = `https://api.mailgun.net/v3/${domain}/messages`;
+  
+  const params = new URLSearchParams();
+  params.append('from', from);
+  params.append('to', email);
+  params.append('subject', 'Verify your Hidel Finance Account');
+  params.append('html', htmlContent);
 
   try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log("[EMAIL SERVICE] Email sent successfully via Gmail. Message ID:", info.messageId);
-    return info.messageId;
+    const authHeader = 'Basic ' + Buffer.from(`api:${apiKey}`).toString('base64');
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': authHeader,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: params.toString()
+    });
+
+    console.log(`[EMAIL SERVICE] Mailgun response status: ${response.status}`);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      // Ensure we don't accidentally log the full request headers which might contain auth
+      throw new Error(`Mailgun API returned ${response.status}: ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log("[EMAIL SERVICE] Email sent successfully via Mailgun HTTP API. Message ID:", data.id);
+    return data.id;
   } catch (error) {
-    console.error("[EMAIL SERVICE] Nodemailer error:", error);
+    console.error("[EMAIL SERVICE] Mailgun API error:", error.message);
     throw new Error(`Email sending failed: ${error.message}`);
   }
 };
