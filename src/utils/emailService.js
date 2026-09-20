@@ -3,9 +3,9 @@ const sendVerificationEmail = async (email, name, otp) => {
   console.log(`[EMAIL SERVICE] Sending Verification Email to ${email}`);
   console.log('=============================================\n');
 
-  const apiKey = process.env.MAILGUN_API_KEY;
-  const domain = process.env.MAILGUN_DOMAIN || 'sandbox1f07edde778a423986fe588a8cbdd9d50.mailgun.org';
-  const from = process.env.MAILGUN_FROM || `Hidel Finance <hidelfinance@${domain}>`;
+  const apiKey = (process.env.MAILGUN_API_KEY || '').trim();
+  const domain = (process.env.MAILGUN_DOMAIN || '').trim() || 'sandbox1f07edde778a423986fe588a8cbd9d50.mailgun.org';
+  const from = (process.env.MAILGUN_FROM || '').trim() || `Hidel Finance <hidelfinance@${domain}>`;
 
   console.log('[EMAIL SERVICE] Provider: Mailgun HTTP API');
   console.log(`[EMAIL SERVICE] Domain: ${domain}`);
