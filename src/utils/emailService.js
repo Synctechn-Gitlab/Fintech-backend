@@ -5,18 +5,20 @@ const sendVerificationEmail = async (email, name, otp) => {
   console.log(`[EMAIL SERVICE] Sending Verification Email to ${email}`);
   console.log('=============================================\n');
 
-  const senderEmail = process.env.MAILGUN_USER;
-  const senderPass = process.env.MAILGUN_PASS;
+  const smtpHost = process.env.SMTP_HOST || 'smtp.mailgun.org';
+  const smtpPort = parseInt(process.env.SMTP_PORT, 10) || 2525;
+  const senderEmail = process.env.SMTP_USER;
+  const senderPass = process.env.SMTP_PASSWORD;
 
   if (!senderEmail || !senderPass) {
-    console.log('[EMAIL SERVICE] Missing MAILGUN_USER or MAILGUN_PASS. Skipping actual email send via Nodemailer.');
+    console.log('[EMAIL SERVICE] Missing SMTP_USER or SMTP_PASSWORD. Skipping actual email send via Nodemailer.');
     return true; // For testing when credentials aren't set
   }
 
   // Configure Nodemailer for Mailgun (Port 2525 bypasses Render's SMTP block)
   const transporter = nodemailer.createTransport({
-    host: 'smtp.mailgun.org',
-    port: 2525,
+    host: smtpHost,
+    port: smtpPort,
     auth: {
       user: senderEmail,
       pass: senderPass
@@ -35,7 +37,7 @@ const sendVerificationEmail = async (email, name, otp) => {
         <p style="color: #4B5563; font-size: 16px;">
           Hello ${name},
         </p>
-        <p style="color: #4B5563; font-size: 16px;">
+        <p style="color: #14bc25ff; font-size: 16px;">
           Your email verification OTP is:
         </p>
         <div style="margin: 30px 0; text-align: center;">
